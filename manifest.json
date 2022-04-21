@@ -1,0 +1,17 @@
+{
+  "name": "Yet Another Highlighter",
+  "description": "A web highlighter for chrome.",
+  "version": "0.0.1",
+  "manifest_version": 3,
+  "permissions": ["activeTab", "scripting"],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": ["http://*/*", "https://*/*"],
+      "css": ["stylesheet.css"],
+      "js": ["content.js"]
+    }
+  ]
+}
