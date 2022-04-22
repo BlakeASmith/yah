@@ -1,49 +1,24 @@
 import $ from "jquery";
 import tippy from "tippy.js";
 
-type UnwrapFunction = () => void;
-
-const WRAPPER_CLASS_NAME = "iswrapper";
-
 /**
  * Generate HTML code for a tooltip element.
  */
 function tooltipHTML() {
-  return `<button>TOOLTIP</button>`;
+  return `<button>Highlight</button>`;
 }
 
 /**
- * Wrap Text nodes in aspan. If a non-text node is provided it will
- * not be wrapped.
- *
- * This allows the tooltip element to be attached to the end of the
- * highlighted region.
- *
- * @param {Node} textElement - The node to be wrapped
- *
- * @return {[HTMLElement, UnwrapFunction]} - The wrapper node (a span) and a
- *     function which will remove the wrapper node from the DOM
+ * @type {object} - Options for the 'tippy.js' tooltip
  */
-function wrapTextNodes(textElement: Node): [HTMLElement, UnwrapFunction] {
-  let wrapper: HTMLElement | undefined = undefined;
-  while (textElement instanceof Text) {
-    wrapper = document.createElement("span");
-    wrapper.classList.toggle(WRAPPER_CLASS_NAME);
-    textElement.parentNode?.insertBefore(wrapper, textElement);
-    textElement.parentNode?.removeChild(textElement);
-    wrapper.appendChild(textElement);
-    textElement = wrapper;
-  }
-
-  return [
-    textElement as HTMLElement,
-    () => {
-      if (wrapper === undefined) return;
-      if (wrapper.classList.contains(WRAPPER_CLASS_NAME))
-        wrapper.parentElement?.replaceChild(wrapper.childNodes[0], wrapper);
-    },
-  ];
-}
+const TOOLTIP_OPTIONS: object = {
+  interactive: true,
+  allowHTML: true,
+  showOnCreate: true,
+  sticky: true,
+  trigger: "manual",
+  placement: "right-end",
+};
 
 /**
  * @type {boolean} - Flag to prevent multiple instances of the
@@ -77,14 +52,7 @@ function attachTooltipToElement(elem: HTMLElement) {
 
   tooltipVisible = true;
 
-  const tip = tippy(elem, {
-    content: tooltipHTML(),
-    interactive: true,
-    allowHTML: true,
-    showOnCreate: true,
-    sticky: true,
-    trigger: "manual",
-  });
+  const tip = tippy(elem, { content: tooltipHTML(), ...TOOLTIP_OPTIONS });
 
   const destroyTip = () => {
     tip.destroy();
@@ -97,26 +65,30 @@ function attachTooltipToElement(elem: HTMLElement) {
 }
 
 /**
- * Create the highlighting tooltip over the currently selected element.
+ * Recursively move up the DOM until a non text node is found.
  *
- * Text nodes will be wrapped temporarily with a span so that the
- * tooltip can be properly attached.
+ * @param {Text | Node} elem - A DOM node
+ * @returns {Node} - The nearest ancestor node which is not a text node
+ */
+function getNearestNonTextElement(elem: Text | Node): Node {
+  return elem instanceof Text
+    ? getNearestNonTextElement(elem.parentElement!!)
+    : elem;
+}
+
+/**
+ * Create the highlighting tooltip over the currently selected element.
  */
 function attachTooltipToSelection() {
   const selection = window.getSelection();
   const range = getSelectionRange(selection);
 
   if (range === undefined) return undefined;
-  const [end, unwrap] = wrapTextNodes(range.endContainer);
 
-  attachTooltipToElement(end);
+  const end = getNearestNonTextElement(range.endContainer);
 
-  document.addEventListener("mouseup", unwrap, { once: true });
-  document.addEventListener(
-    "mousedown",
-    selection!!.removeAllRanges.bind(selection),
-    { once: true }
-  );
+  attachTooltipToElement(end as HTMLElement);
+
 }
 
 document.addEventListener("mouseup", attachTooltipToSelection);
