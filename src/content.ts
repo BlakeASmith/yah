@@ -4,8 +4,10 @@ import tippy from "tippy.js";
 /**
  * Generate HTML code for a tooltip element.
  */
-function tooltipHTML() {
-  return `<button>Highlight</button>`;
+function tooltipHTML(): HTMLElement {
+  const button = document.createElement("button");
+  button.appendChild(document.createTextNode("Hello"));
+  return button;
 }
 
 /**
@@ -40,20 +42,21 @@ function getSelectionRange(
  * user clicks away from the selection or makes another selection.
  *
  * @param {HTMLElement} elem: The element to attach to
+ * @returns {HTMLElement | undefined} The tooltip element, or undefined
  */
-function attachTooltipToElement(elem: HTMLElement) {
-  if (tooltipVisible) return undefined;
+function attachTooltipToElement(elem: HTMLElement): HTMLElement {
+  const tipElement = tooltipHTML();
 
   const tip = tippy(elem, { content: tipElement, ...TOOLTIP_OPTIONS });
 
   const destroyTip = () => {
-    tip.destroy();
-    tooltipVisible = false;
+    // Delay some time to allow click events to process
+    setTimeout(tip.destroy.bind(tip), 100);
   };
 
   document.addEventListener("mouseup", destroyTip, { once: true });
 
-  return tip;
+  return tipElement;
 }
 
 /**
@@ -79,8 +82,13 @@ function attachTooltipToSelection() {
 
   const end = getNearestNonTextElement(range.endContainer);
 
-  attachTooltipToElement(end as HTMLElement);
+  const tooltip = attachTooltipToElement(end as HTMLElement);
 
+  if (tooltip === undefined) return;
+
+  tooltip.addEventListener("click", () => {
+    console.log("clicked");
+  });
 }
 
 document.addEventListener("mouseup", attachTooltipToSelection);
