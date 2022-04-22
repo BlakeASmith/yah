@@ -42,19 +42,23 @@ function getSelectionRange(
  * user clicks away from the selection or makes another selection.
  *
  * @param {HTMLElement} elem: The element to attach to
- * @returns {HTMLElement | undefined} The tooltip element, or undefined
+ *
+ * @returns {HTMLELement} - The tooltip element
  */
 function attachTooltipToElement(elem: HTMLElement): HTMLElement {
   const tipElement = tooltipHTML();
 
   const tip = tippy(elem, { content: tipElement, ...TOOLTIP_OPTIONS });
 
-  const destroyTip = () => {
-    // Delay some time to allow click events to process
-    setTimeout(tip.destroy.bind(tip), 100);
-  };
-
-  document.addEventListener("mouseup", destroyTip, { once: true });
+  // Destroy the tooltip when the selection is cleared.
+  document.addEventListener(
+    "mouseup",
+    (e: Event) => {
+      if (e.target !== tipElement)
+          tip.destroy();
+    },
+    { once: true }
+  );
 
   return tipElement;
 }
@@ -74,7 +78,8 @@ function getNearestNonTextElement(elem: Text | Node): Node {
 /**
  * Create the highlighting tooltip over the currently selected element.
  */
-function attachTooltipToSelection() {
+function attachTooltipToSelection(event: Event) {
+  if (event.target instanceof HTMLButtonElement) return;
   const selection = window.getSelection();
   const range = getSelectionRange(selection);
 
@@ -84,10 +89,10 @@ function attachTooltipToSelection() {
 
   const tooltip = attachTooltipToElement(end as HTMLElement);
 
-  if (tooltip === undefined) return;
-
   tooltip.addEventListener("click", () => {
-    console.log("clicked");
+      const selected = selection!!.toString()
+      console.log(selected)
+    tooltip.remove();
   });
 }
 
