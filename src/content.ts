@@ -21,12 +21,6 @@ const TOOLTIP_OPTIONS: object = {
 };
 
 /**
- * @type {boolean} - Flag to prevent multiple instances of the
- *     tooltip from being visible at the same time
- */
-let tooltipVisible: boolean = false;
-
-/**
  * Get the selection range only if the selection is not empty.
  *
  * @param {Selection} selection - The current selection
@@ -50,9 +44,7 @@ function getSelectionRange(
 function attachTooltipToElement(elem: HTMLElement) {
   if (tooltipVisible) return undefined;
 
-  tooltipVisible = true;
-
-  const tip = tippy(elem, { content: tooltipHTML(), ...TOOLTIP_OPTIONS });
+  const tip = tippy(elem, { content: tipElement, ...TOOLTIP_OPTIONS });
 
   const destroyTip = () => {
     tip.destroy();
