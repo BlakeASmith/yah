@@ -46,16 +46,30 @@ function getSelectionRange(
  *
  * @returns {HTMLELement} - The tooltip element
  */
-function attachTooltipToElement(elem: HTMLElement): HTMLElement {
+function attachTooltipToElement(
+  elem: HTMLElement,
+  { destroy, rect }: { rect: DOMRect | undefined; destroy: Boolean } = {
+    destroy: false,
+    rect: undefined,
+  }
+): HTMLElement {
   const tipElement = tooltipHTML();
 
   const tip = tippy(elem, { content: tipElement, ...TOOLTIP_OPTIONS });
+
+  if (rect)
+    tip.setProps({
+      getReferenceClientRect: () => rect,
+    });
 
   // Destroy the tooltip when the selection is cleared.
   document.addEventListener(
     "mouseup",
     (e: Event) => {
-      if (e.target !== tipElement) tip.destroy();
+      if (e.target !== tipElement) {
+        tip.destroy();
+        if (destroy === true) elem.remove();
+      }
     },
     { once: true }
   );
@@ -78,16 +92,25 @@ function getNearestNonTextElement(elem: Text | Node): Node {
 /**
  * Create the highlighting tooltip over the currently selected element.
  */
-function attachTooltipToSelection(event: Event) {
+function attachTooltipToSelection(event: MouseEvent) {
   if (event.target instanceof HTMLButtonElement) return;
   const selection = window.getSelection();
   const range = getSelectionRange(selection);
 
-  if (range === undefined) return undefined;
+  if (range === undefined || selection === undefined) return undefined;
 
-  const end = getNearestNonTextElement(range.endContainer);
+  fixRangeBounds(selection!!, range!!);
 
-  const tooltip = attachTooltipToElement(end as HTMLElement);
+  const tooltipAttachPoint = document.createElement("span");
+  tooltipAttachPoint.id = "tooltip-attach";
+  tooltipAttachPoint.style.position = "absolute";
+
+  (range.endContainer as ChildNode).after(tooltipAttachPoint);
+
+  const tooltip = attachTooltipToElement(tooltipAttachPoint as HTMLElement, {
+    destroy: true,
+    rect: range.getBoundingClientRect(),
+  });
 
   tooltip.addEventListener("click", () => {
     highlightSelection(selection!!);
@@ -95,7 +118,24 @@ function attachTooltipToSelection(event: Event) {
   });
 }
 
-document.addEventListener("mouseup", attachTooltipToSelection);
+let clickCount = 0;
+
+const clickDelays = new Map<number, number>([[1, 500], [2, 500], [3, 0]])
+
+document.addEventListener("mouseup", (event: MouseEvent) => {
+  event.preventDefault();
+  clickCount += 1;
+  setTimeout(() => {
+      console.log(event.detail, clickCount)
+      if (clickCount > 3)
+          clickCount = 0
+    if (event.detail == clickCount) {
+      console.log("attach");
+      attachTooltipToSelection(event);
+      clickCount = 0;
+    }
+  }, clickDelays.get(clickCount));
+});
 
 function findFirstText(el: Element): Element | undefined {
   if (el.childNodes.length === 0) return el.textContent !== "" ? el : undefined;
@@ -147,16 +187,25 @@ function findBeginningOfText(
   return startContainer as Element;
 }
 
+function findEndOfText(range: Range): Element | undefined {
+  let next: Node | ChildNode | undefined | null = range.endContainer;
+
+  do {
+    const text = findFirstText(next as Element);
+    if (text !== undefined) return text;
+    else next = next.previousSibling;
+  } while (next);
+
+  return undefined;
+}
+
 function fixRangeBounds(selection: Selection, range: Range) {
   range.setStart(
     findBeginningOfText(selection, range) as Node,
     range.startOffset
   );
 
-  range.setEnd(
-    findFirstText(range.endContainer as Element) as Node,
-    range.endOffset
-  );
+  range.setEnd(findEndOfText(range) as Node, range.endOffset);
 }
 
 function complexSurroundContents(
