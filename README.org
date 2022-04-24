@@ -1,3 +1,5 @@
 * YAH: Yet Another Highlighter
 
 A web highligher.
+
+<img src="https://media.giphy.com/media/ATL3Uj76JlpSxNlNnn/giphy.gif" width="300">
