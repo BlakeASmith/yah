@@ -147,11 +147,7 @@ function findBeginningOfText(
   return startContainer as Element;
 }
 
-function complexSurroundContents(
-  selection: Selection,
-  range: Range,
-  wrapper: HTMLElement
-): void {
+function fixRangeBounds(selection: Selection, range: Range) {
   range.setStart(
     findBeginningOfText(selection, range) as Node,
     range.startOffset
@@ -161,7 +157,14 @@ function complexSurroundContents(
     findFirstText(range.endContainer as Element) as Node,
     range.endOffset
   );
+}
 
+function complexSurroundContents(
+  selection: Selection,
+  range: Range,
+  wrapper: HTMLElement
+): void {
+  fixRangeBounds(selection, range);
   getNodesInSelection(selection, range)
     .filter((node) => node !== range.startContainer)
     .filter((node) => node !== range.endContainer)
