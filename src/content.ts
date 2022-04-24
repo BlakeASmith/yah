@@ -157,6 +157,11 @@ function complexSurroundContents(
     range.startOffset
   );
 
+  range.setEnd(
+    findFirstText(range.endContainer as Element) as Node,
+    range.endOffset
+  );
+
   getNodesInSelection(selection, range)
     .filter((node) => node !== range.startContainer)
     .filter((node) => node !== range.endContainer)
@@ -169,6 +174,7 @@ function complexSurroundContents(
         _wrapper.appendChild(subRange.extractContents());
         subRange.insertNode(_wrapper);
       } else {
+        if (node.textContent === "") return;
         const subRange = new Range();
         subRange.setStart(node, 0);
         subRange.setEnd(node, node.textContent!!.length);
@@ -184,10 +190,13 @@ function complexSurroundContents(
   );
   startRange.surroundContents(wrapper.cloneNode());
 
+  // It can happen sometimes that the end node is not actually part of the selection
+  if (!selection.containsNode(range.endContainer)) return;
+
   const endRange = new Range();
   endRange.setStart(range.endContainer, 0);
   endRange.setEnd(range.endContainer, range.endOffset);
-    endRange.surroundContents(wrapper);
+  endRange.surroundContents(wrapper);
 }
 
 function highlightSelection(selection: Selection) {
