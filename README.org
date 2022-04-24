@@ -2,4 +2,4 @@
 
 A web highligher.
 
-![[https://media.giphy.com/media/ATL3Uj76JlpSxNlNnn/giphy.gif]]
+[[https://media.giphy.com/media/ATL3Uj76JlpSxNlNnn/giphy.gif]]
