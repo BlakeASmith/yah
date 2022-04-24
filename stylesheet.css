@@ -2,3 +2,12 @@
 .highlight * {
   background: #FFC107 !important;
 }
+
+
+.circ {
+    margin: 2px;
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    display: inline-block;
+}
