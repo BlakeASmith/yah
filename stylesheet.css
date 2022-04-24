@@ -1,7 +1,4 @@
-.highlight {
-  display: inline;
-  padding: .25em 0;
-  background: #FFC107;
-  color: #ffffff;
-  box-shadow: .5em 0 0 #FFC107, -.5em 0 0 #FFC107;
+.highlight,
+.highlight * {
+  background: #FFC107 !important;
 }

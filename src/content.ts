@@ -1,4 +1,5 @@
 import $ from "jquery";
+import _ from "underscore";
 import tippy from "tippy.js";
 
 /**
@@ -54,8 +55,7 @@ function attachTooltipToElement(elem: HTMLElement): HTMLElement {
   document.addEventListener(
     "mouseup",
     (e: Event) => {
-      if (e.target !== tipElement)
-          tip.destroy();
+      if (e.target !== tipElement) tip.destroy();
     },
     { once: true }
   );
@@ -90,10 +90,114 @@ function attachTooltipToSelection(event: Event) {
   const tooltip = attachTooltipToElement(end as HTMLElement);
 
   tooltip.addEventListener("click", () => {
-      const selected = selection!!.toString()
-      console.log(selected)
+    highlightSelection(selection!!);
     tooltip.remove();
   });
 }
 
 document.addEventListener("mouseup", attachTooltipToSelection);
+
+function findFirstText(el: Element): Element | undefined {
+  if (el.childNodes.length === 0) return el.textContent !== "" ? el : undefined;
+
+  let firstText: Element | undefined;
+
+  _.find(el.childNodes, (child) => {
+    firstText = findFirstText(child as Element);
+    return firstText !== undefined;
+  });
+
+  return firstText;
+}
+
+/*
+ * If an element is not in the selection, we need to check if any
+ * of it's children might be, and we need to do so
+ * recursively. This is because the common ancestor might be
+ * multiple levels up in the DOM tree
+ */
+function getNodesInSelection(selection: Selection, range: Range) {
+  function expandChildren(node: Node): Array<Node> {
+    return selection.containsNode(node) || node.childNodes.length == 0
+      ? [node]
+      : Array.from(node.childNodes).flatMap(expandChildren);
+  }
+
+  return Array.from(range.commonAncestorContainer.childNodes)
+    .flatMap(expandChildren)
+    .filter((node) => selection.containsNode(node));
+}
+
+function findBeginningOfText(
+  selection: Selection,
+  range: Range
+): Element | undefined {
+  let startContainer: Element | undefined = findFirstText(
+    range.startContainer as Element
+  );
+
+  if (startContainer === undefined) {
+    const selectedNodes = getNodesInSelection(selection, range);
+    _.find(selectedNodes, (node) => {
+      startContainer = findFirstText(node as Element);
+      return startContainer !== undefined;
+    });
+  }
+
+  return startContainer as Element;
+}
+
+function complexSurroundContents(
+  selection: Selection,
+  range: Range,
+  wrapper: HTMLElement
+): void {
+  range.setStart(
+    findBeginningOfText(selection, range) as Node,
+    range.startOffset
+  );
+
+  getNodesInSelection(selection, range)
+    .filter((node) => node !== range.startContainer)
+    .filter((node) => node !== range.endContainer)
+    .forEach((node) => {
+      if (node.nodeType != node.TEXT_NODE) {
+        const subRange = new Range();
+        subRange.setStart(node, 0);
+        subRange.setEnd(node, node.childNodes.length);
+        const _wrapper = wrapper.cloneNode();
+        _wrapper.appendChild(subRange.extractContents());
+        subRange.insertNode(_wrapper);
+      } else {
+        const subRange = new Range();
+        subRange.setStart(node, 0);
+        subRange.setEnd(node, node.textContent!!.length);
+        subRange.surroundContents(wrapper.cloneNode());
+      }
+    });
+
+  const startRange = new Range();
+  startRange.setStart(range.startContainer, range.startOffset);
+  startRange.setEnd(
+    range.startContainer,
+    range.startContainer.textContent!!.length
+  );
+  startRange.surroundContents(wrapper.cloneNode());
+
+  const endRange = new Range();
+  endRange.setStart(range.endContainer, 0);
+  endRange.setEnd(range.endContainer, range.endOffset);
+    endRange.surroundContents(wrapper);
+}
+
+function highlightSelection(selection: Selection) {
+  const range = selection.getRangeAt(0);
+  const { startContainer, endContainer } = range;
+
+  const wrapper = document.createElement("span");
+  wrapper.classList.toggle("highlight");
+
+  startContainer == endContainer
+    ? range.surroundContents(wrapper)
+    : complexSurroundContents(selection, range, wrapper);
+}
