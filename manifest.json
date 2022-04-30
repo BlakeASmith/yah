@@ -13,5 +13,11 @@
       "css": ["stylesheet.css"],
       "js": ["content.js"]
     }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": ["images/*.png"],
+      "matches": ["http://*/*", "https://*/*"]
+    }
   ]
 }

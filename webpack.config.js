@@ -35,6 +35,11 @@ module.exports = {
           to: "./stylesheet.css",
           context: ".",
         },
+        {
+          from: "./images",
+          to: "./images",
+          context: ".",
+        },
       ],
     }),
   ],

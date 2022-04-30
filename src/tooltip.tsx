@@ -30,9 +30,14 @@ type TooltipProps = {
 const ToolTip = ({ colors, selectedColor }: TooltipProps) => (
   <div id="hl-tool">
     {colors.map((hlColor: HighlightColor) =>
-      selectedColor ? (
+      selectedColor == hlColor ? (
         <span>
-          <button className="circ" style={{ background: hlColor.hex }}></button>
+          <img
+            src={chrome.runtime.getURL("images/remove.png")}
+            onClick={(e) => console.log(e.target)}
+            width="30"
+            height="30"
+          ></img>
         </span>
       ) : (
         <span>

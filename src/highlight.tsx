@@ -1,6 +1,7 @@
 import { MouseEventHandler } from "react";
 import _ from "underscore";
 import { attachTooltipToElement } from "./tooltip";
+import { v4 as uuid } from "uuid";
 
 export type HighlightColor = {
   name: string;
@@ -8,6 +9,7 @@ export type HighlightColor = {
 };
 
 export type Highlight = {
+  id: string;
   color: HighlightColor;
   range: Range;
 };
@@ -149,14 +151,17 @@ function complexSurroundContents(
   endRange.surroundContents(makeWrapper());
 }
 
-function makeHighlightWrapper(color: HighlightColor): HTMLElement {
+function makeHighlightWrapper(
+  color: HighlightColor,
+  highlightID: string
+): HTMLElement {
   const wrapper = document.createElement("span");
   wrapper.classList.toggle(color.name);
   wrapper.classList.toggle("hl");
+  wrapper.classList.toggle(highlightID);
 
   wrapper.addEventListener("click", (event: MouseEvent) => {
     if (event.target == null) return;
-    console.log(event.target);
     attachTooltipToElement(event.target as HTMLElement, {
       selectedColor: color,
     });
@@ -172,13 +177,15 @@ export function highlightSelection(
   const range = selection.getRangeAt(0);
   const { startContainer, endContainer } = range;
 
+  const highlightID = `hl-${uuid()}`;
+
   startContainer == endContainer
-    ? range.surroundContents(makeHighlightWrapper(color))
+    ? range.surroundContents(makeHighlightWrapper(color, highlightID))
     : complexSurroundContents(selection, range, () =>
-        makeHighlightWrapper(color)
+        makeHighlightWrapper(color, highlightID)
       );
 
-  emitHighlightEvent({ color, range });
+  emitHighlightEvent({ id: highlightID, color, range });
 }
 
 function emitHighlightEvent(hl: Highlight) {

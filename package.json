@@ -33,6 +33,7 @@
     "react-dom": "^18.0.0",
     "styled-components": "^5.3.5",
     "tippy.js": "^6.3.7",
-    "underscore": "^1.13.3"
+    "underscore": "^1.13.3",
+    "uuid": "^8.3.2"
   }
 }
