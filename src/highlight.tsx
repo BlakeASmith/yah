@@ -6,6 +6,11 @@ export type HighlightColor = {
   hex: string;
 };
 
+export type Highlight = {
+  color: HighlightColor;
+  range: Range;
+};
+
 const COLORS: Array<HighlightColor> = [
   { name: "yellow", hex: "#FBE7C6" },
   { name: "mint", hex: "#B4F8C8" },
@@ -157,6 +162,13 @@ export function highlightSelection(
   startContainer == endContainer
     ? range.surroundContents(wrapper)
     : complexSurroundContents(selection, range, wrapper);
+
+  emitHighlightEvent({ color, range });
+}
+
+function emitHighlightEvent(hl: Highlight) {
+  const highlightEvent = new CustomEvent("highlight", { detail: hl });
+  document.dispatchEvent(highlightEvent);
 }
 
 export function highlightSelectionOnEvent(
