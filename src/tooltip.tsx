@@ -24,29 +24,39 @@ const TOOLTIP_OPTIONS: object = {
 
 type TooltipProps = {
   colors: Array<HighlightColor>;
+  selectedColor: HighlightColor | undefined;
 };
 
-const ToolTip = ({ colors }: TooltipProps) => (
+const ToolTip = ({ colors, selectedColor }: TooltipProps) => (
   <div id="hl-tool">
-    {colors.map((hlColor: HighlightColor) => (
-      <span>
-        <button
-          onClick={highlightSelectionOnEvent(hlColor)}
-          className="circ"
-          style={{ background: hlColor.hex }}
-        ></button>
-      </span>
-    ))}
+    {colors.map((hlColor: HighlightColor) =>
+      selectedColor ? (
+        <span>
+          <button className="circ" style={{ background: hlColor.hex }}></button>
+        </span>
+      ) : (
+        <span>
+          <button
+            onClick={highlightSelectionOnEvent(hlColor)}
+            className="circ"
+            style={{ background: hlColor.hex }}
+          ></button>
+        </span>
+      )
+    )}
   </div>
 );
 
 /**
  * Generate HTML code for a tooltip element.
  */
-function tooltipHTML(colors: Array<HighlightColor>): HTMLElement {
+function tooltipHTML(
+  colors: Array<HighlightColor>,
+  selected: HighlightColor | undefined = undefined
+): HTMLElement {
   const span = document.createElement("span");
 
-  ReactDOM.render(<ToolTip colors={colors} />, span);
+  ReactDOM.render(<ToolTip colors={colors} selectedColor={selected} />, span);
   return span;
 }
 
@@ -63,6 +73,12 @@ function getSelectionRange(
   return range?.toString()?.length == 0 ? undefined : range;
 }
 
+export type TooltipAttachOptions = {
+  rect?: DOMRect;
+  destroy?: boolean;
+  selectedColor?: HighlightColor;
+};
+
 /**
  * Create the highlighting tooltip over an HTML element.
  *
@@ -73,14 +89,15 @@ function getSelectionRange(
  *
  * @returns {HTMLELement} - The tooltip element
  */
-function attachTooltipToElement(
+export function attachTooltipToElement(
   elem: HTMLElement,
-  { destroy, rect }: { rect: DOMRect | undefined; destroy: Boolean } = {
-    destroy: false,
+  { destroy, rect, selectedColor }: TooltipAttachOptions = {
+    destroy: true,
     rect: undefined,
+    selectedColor: undefined,
   }
 ): HTMLElement {
-  const tipElement = tooltipHTML(COLORS);
+  const tipElement = tooltipHTML(COLORS, selectedColor);
 
   const tip = tippy(elem, { content: tipElement, ...TOOLTIP_OPTIONS });
 
@@ -127,5 +144,6 @@ export function attachTooltipToSelection() {
   attachTooltipToElement(tooltipAttachPoint as HTMLElement, {
     destroy: true,
     rect: range.getBoundingClientRect(),
+    selectedColor: undefined,
   });
 }

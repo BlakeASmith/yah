@@ -1,5 +1,6 @@
 import { MouseEventHandler } from "react";
 import _ from "underscore";
+import { attachTooltipToElement } from "./tooltip";
 
 export type HighlightColor = {
   name: string;
@@ -108,7 +109,7 @@ export function fixRangeBounds(selection: Selection, range: Range) {
 function complexSurroundContents(
   selection: Selection,
   range: Range,
-  wrapper: HTMLElement
+  makeWrapper: () => HTMLElement
 ): void {
   fixRangeBounds(selection, range);
   getNodesInSelection(selection, range)
@@ -119,7 +120,7 @@ function complexSurroundContents(
         const subRange = new Range();
         subRange.setStart(node, 0);
         subRange.setEnd(node, node.childNodes.length);
-        const _wrapper = wrapper.cloneNode();
+        const _wrapper = makeWrapper();
         _wrapper.appendChild(subRange.extractContents());
         subRange.insertNode(_wrapper);
       } else {
@@ -127,7 +128,7 @@ function complexSurroundContents(
         const subRange = new Range();
         subRange.setStart(node, 0);
         subRange.setEnd(node, node.textContent!!.length);
-        subRange.surroundContents(wrapper.cloneNode());
+        subRange.surroundContents(makeWrapper());
       }
     });
 
@@ -137,7 +138,7 @@ function complexSurroundContents(
     range.startContainer,
     range.startContainer.textContent!!.length
   );
-  startRange.surroundContents(wrapper.cloneNode());
+  startRange.surroundContents(makeWrapper());
 
   // It can happen sometimes that the end node is not actually part of the selection
   if (!selection.containsNode(range.endContainer)) return;
@@ -145,7 +146,23 @@ function complexSurroundContents(
   const endRange = new Range();
   endRange.setStart(range.endContainer, 0);
   endRange.setEnd(range.endContainer, range.endOffset);
-  endRange.surroundContents(wrapper);
+  endRange.surroundContents(makeWrapper());
+}
+
+function makeHighlightWrapper(color: HighlightColor): HTMLElement {
+  const wrapper = document.createElement("span");
+  wrapper.classList.toggle(color.name);
+  wrapper.classList.toggle("hl");
+
+  wrapper.addEventListener("click", (event: MouseEvent) => {
+    if (event.target == null) return;
+    console.log(event.target);
+    attachTooltipToElement(event.target as HTMLElement, {
+      selectedColor: color,
+    });
+  });
+
+  return wrapper;
 }
 
 export function highlightSelection(
@@ -155,13 +172,11 @@ export function highlightSelection(
   const range = selection.getRangeAt(0);
   const { startContainer, endContainer } = range;
 
-  const wrapper = document.createElement("span");
-  wrapper.classList.toggle(color.name);
-  wrapper.classList.toggle("hl");
-
   startContainer == endContainer
-    ? range.surroundContents(wrapper)
-    : complexSurroundContents(selection, range, wrapper);
+    ? range.surroundContents(makeHighlightWrapper(color))
+    : complexSurroundContents(selection, range, () =>
+        makeHighlightWrapper(color)
+      );
 
   emitHighlightEvent({ color, range });
 }
