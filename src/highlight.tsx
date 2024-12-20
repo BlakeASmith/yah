@@ -2,6 +2,7 @@ import { MouseEventHandler } from "react";
 import _ from "underscore";
 import { attachTooltipToElement } from "./tooltip";
 import { v4 as uuid } from "uuid";
+import getXPath from "get-xpath"
 
 export type HighlightColor = {
   name: string;
@@ -178,6 +179,9 @@ export function highlightSelection(
   const { startContainer, endContainer } = range;
 
   const highlightID = `hl-${uuid()}`;
+
+  console.log(getXPath(startContainer))
+  console.log(getXPath(endContainer))
 
   startContainer == endContainer
     ? range.surroundContents(makeHighlightWrapper(color, highlightID))
