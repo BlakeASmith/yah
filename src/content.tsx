@@ -1,6 +1,6 @@
 import { attachTooltipToSelection } from "./tooltip";
 import { storeHighlight } from "./store";
-import { Highlight } from "./highlight";
+import { UIHighlight } from "./highlight";
 
 function doOnSelection(action: () => void) {
   let clickCount = 0;
@@ -30,6 +30,6 @@ doOnSelection(attachTooltipToSelection);
 document.addEventListener("highlight", (event: Event) => {
   event.preventDefault();
 
-  const range = (event as CustomEvent).detail as Highlight;
+  const range = (event as CustomEvent).detail as UIHighlight;
   storeHighlight(range);
 });

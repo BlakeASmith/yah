@@ -3,13 +3,52 @@ import _ from "underscore";
 import { attachTooltipToElement } from "./tooltip";
 import { v4 as uuid } from "uuid";
 import getXPath from "get-xpath"
+import { getHighlightsForDomain, Highlight, saveHighlight, storeHighlight } from "./store";
+
+// Function to handle highlighting
+async function processHighlights() {
+  const highlights = await getHighlightsForDomain(location.hostname);
+  highlights.forEach((highlight) => highlightHighlight(highlight));
+}
+
+// Function to set up a MutationObserver
+function setupMutationObserver() {
+  // Select the node to observe (e.g., the body of the document)
+  const targetNode = document.body;
+
+  // Define the configuration for the observer
+  const config = {
+    childList: true,      // Observe changes to child elements
+    subtree: true,        // Observe changes in the entire subtree
+    attributes: false,    // (Optional) Track attribute changes
+  };
+
+  // Create a MutationObserver instance
+  const observer = new MutationObserver((mutationsList) => {
+    for (const mutation of mutationsList) {
+      // Run the highlight logic whenever mutations occur
+      if (mutation.type === 'childList') {
+        processHighlights();
+      }
+    }
+  });
+
+  // Start observing the target node with the specified configuration
+  observer.observe(targetNode, config);
+
+  console.log('MutationObserver is now observing DOM changes.');
+}
+
+// Initialize the observer
+setupMutationObserver();
+
 
 export type HighlightColor = {
   name: string;
   hex: string;
 };
 
-export type Highlight = {
+export type UIHighlight = {
   id: string;
   color: HighlightColor;
   range: Range;
@@ -171,6 +210,35 @@ function makeHighlightWrapper(
   return wrapper;
 }
 
+function createHL(
+  props: {
+    userId: string,
+    highlightId: string,
+    range: Range,
+    color: HighlightColor
+  }
+) {
+  let {startContainer, endContainer} = props.range;
+
+  const hl: Highlight = {
+    id: props.highlightId, 
+    domain: location.hostname,
+    url: location.href,
+    text: props.range.toString(),
+    position: {
+      startOffset: props.range.startOffset,
+      endOffset: props.range.endOffset,
+      startXpath: getXPath(startContainer),
+      endXpath: getXPath(endContainer),
+    },
+    color: props.color,
+    createdAt: new Date().toISOString(),
+    userId: props.userId,
+  };
+
+  return hl
+}
+
 export function highlightSelection(
   selection: Selection,
   { color } = { color: COLORS[0] }
@@ -180,8 +248,15 @@ export function highlightSelection(
 
   const highlightID = `hl-${uuid()}`;
 
-  console.log(getXPath(startContainer))
-  console.log(getXPath(endContainer))
+  const hl = createHL({
+    highlightId: highlightID,
+    range: range,
+    color: color,
+    userId: chrome.runtime.id
+  })
+
+  saveHighlight(hl);
+  console.log(hl);
 
   startContainer == endContainer
     ? range.surroundContents(makeHighlightWrapper(color, highlightID))
@@ -192,7 +267,33 @@ export function highlightSelection(
   emitHighlightEvent({ id: highlightID, color, range });
 }
 
-function emitHighlightEvent(hl: Highlight) {
+function getRangeFromHighlight(highlight: Highlight): Range | null {
+  const startElement = document.evaluate(highlight.position.startXpath, document)
+    .iterateNext()
+  const endElement = document.evaluate(highlight.position.endXpath, document)
+    .iterateNext()
+
+  if (startElement === null || endElement === null) {
+    console.log("Could not find start or end element for highlight %s", highlight.id)
+    return null
+  }
+
+  const range = new Range(); 
+  range.setStart(startElement!!, highlight.position.startOffset);
+  range.setEnd(endElement!!, highlight.position.endOffset);
+  return range
+}
+
+function highlightHighlight(highlight: Highlight) {
+  const range = getRangeFromHighlight(highlight);
+  if (range === null) {
+    return
+  }
+  console.log("could not find elements to highlight")
+  range.surroundContents(makeHighlightWrapper(highlight.color, highlight.id));
+}
+
+function emitHighlightEvent(hl: UIHighlight) {
   const highlightEvent = new CustomEvent("highlight", { detail: hl });
   document.dispatchEvent(highlightEvent);
 }
